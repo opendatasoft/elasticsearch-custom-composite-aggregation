@@ -1,0 +1,49 @@
+buildscript {
+
+
+    repositories {
+        mavenLocal()
+        mavenCentral()
+        jcenter()
+    }
+
+    dependencies {
+        classpath "org.elasticsearch.gradle:build-tools:${es_version}"
+    }
+}
+
+group = 'org.elasticsearch.plugin'
+version = "${plugin_version}"
+
+apply plugin: 'java'
+apply plugin: 'idea'
+apply plugin: 'elasticsearch.esplugin'
+
+// license of this project
+licenseFile = rootProject.file('LICENSE')
+noticeFile = rootProject.file('README.md')
+
+esplugin {
+    name 'composite-nested-aggegation'
+    description 'Aggregate clusters from geohash grid aggregation'
+    classname 'com.opendatasoft.elasticsearch.plugin.CompositeWithNestedAggregationPlugin'
+    licenseFile = rootProject.file('LICENSE')
+    noticeFile = rootProject.file('README.md')
+}
+
+dependencies {
+    compile "org.elasticsearch:elasticsearch:${es_version}"
+    testCompile "org.elasticsearch.test:framework:${es_version}"
+}
+
+test.enabled = false
+
+// Skip license headers check
+licenseHeaders.enabled = false
+
+// Use elasticsearch checkstyle rules
+checkstyleTest.enabled = true
+
+dependencyLicenses.enabled = true
+
+thirdPartyAudit.enabled = true
