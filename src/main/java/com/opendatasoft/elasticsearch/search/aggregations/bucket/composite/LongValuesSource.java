@@ -27,6 +27,7 @@ import org.apache.lucene.index.SortedNumericDocValues;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Weight;
 import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.BigArrays;
@@ -39,6 +40,7 @@ import org.elasticsearch.search.aggregations.LeafBucketCollector;
 
 import java.io.IOException;
 import java.util.function.LongUnaryOperator;
+import java.util.function.Supplier;
 import java.util.function.ToLongFunction;
 
 /**
@@ -53,8 +55,9 @@ class LongValuesSource extends SingleDimensionValuesSource<Long> {
 
     LongValuesSource(BigArrays bigArrays, MappedFieldType fieldType,
                      CheckedFunction<LeafReaderContext, SortedNumericDocValues, IOException> docValuesFunc,
-                     LongUnaryOperator rounding, DocValueFormat format, Object missing, int size, int reverseMul) {
-        super(format, fieldType, missing, size, reverseMul);
+                     LongUnaryOperator rounding, DocValueFormat format, Object missing, int size, int reverseMul,
+                     Supplier<Weight> supplier) {
+        super(format, fieldType, missing, size, reverseMul, supplier);
         this.docValuesFunc = docValuesFunc;
         this.rounding = rounding;
         this.values = bigArrays.newLongArray(size, false);

@@ -23,6 +23,7 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.index.fielddata.SortedBinaryDocValues;
@@ -32,6 +33,7 @@ import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.LeafBucketCollector;
 
 import java.io.IOException;
+import java.util.function.Supplier;
 
 /**
  * A {@link SingleDimensionValuesSource} for binary source ({@link BytesRef}).
@@ -42,8 +44,8 @@ class BinaryValuesSource extends SingleDimensionValuesSource<BytesRef> {
     private BytesRef currentValue;
 
     BinaryValuesSource(MappedFieldType fieldType, CheckedFunction<LeafReaderContext, SortedBinaryDocValues, IOException> docValuesFunc,
-                       DocValueFormat format, Object missing, int size, int reverseMul) {
-        super(format, fieldType, missing, size, reverseMul);
+                       DocValueFormat format, Object missing, int size, int reverseMul, Supplier<Weight> supplier) {
+        super(format, fieldType, missing, size, reverseMul, supplier);
         this.docValuesFunc = docValuesFunc;
         this.values = new BytesRef[size];
     }

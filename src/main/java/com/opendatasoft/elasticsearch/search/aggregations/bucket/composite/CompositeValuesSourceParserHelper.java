@@ -28,13 +28,15 @@ import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.XContentParser;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.search.aggregations.support.ValueType;
+import org.elasticsearch.index.query.QueryBuilder;
 
 import java.io.IOException;
 
 import static org.elasticsearch.common.xcontent.XContentParserUtils.ensureExpectedToken;
+import static org.elasticsearch.index.query.AbstractQueryBuilder.parseInnerQueryBuilder;
 
 class CompositeValuesSourceParserHelper {
-    static <VB extends com.opendatasoft.elasticsearch.search.aggregations.bucket.composite.CompositeValuesSourceBuilder<VB>, T> void declareValuesSourceFields(AbstractObjectParser<VB, T> objectParser,
+    static <VB extends CompositeValuesSourceBuilder<VB>, T> void declareValuesSourceFields(AbstractObjectParser<VB, T> objectParser,
                                                                                                                                                                ValueType targetValueType) {
         objectParser.declareField(VB::field, XContentParser::text,
             new ParseField("field"), ObjectParser.ValueType.STRING);
@@ -57,6 +59,10 @@ class CompositeValuesSourceParserHelper {
             (parser, context) -> Script.parse(parser), Script.SCRIPT_PARSE_FIELD, ObjectParser.ValueType.OBJECT_OR_STRING);
 
         objectParser.declareField(VB::order,  XContentParser::text, new ParseField("order"), ObjectParser.ValueType.STRING);
+
+        objectParser.declareField(
+                VB::filter, (parser, context) -> parseInnerQueryBuilder(parser), new ParseField("filter"),
+                ObjectParser.ValueType.OBJECT);
     }
 
     static void writeTo(CompositeValuesSourceBuilder<?> builder, StreamOutput out) throws IOException {

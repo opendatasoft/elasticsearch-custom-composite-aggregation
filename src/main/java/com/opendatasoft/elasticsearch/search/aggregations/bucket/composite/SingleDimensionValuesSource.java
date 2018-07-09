@@ -23,6 +23,7 @@ import org.apache.lucene.index.IndexOptions;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Weight;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.index.mapper.MappedFieldType;
@@ -31,6 +32,7 @@ import org.elasticsearch.search.aggregations.LeafBucketCollector;
 import org.elasticsearch.search.sort.SortOrder;
 
 import java.io.IOException;
+import java.util.function.Supplier;
 
 /**
  * A source that can record and compare values of similar type.
@@ -47,6 +49,8 @@ abstract class SingleDimensionValuesSource<T extends Comparable<T>> implements R
 
     protected T afterValue;
 
+    protected Supplier<Weight> supplier;
+
     /**
      * Creates a new {@link SingleDimensionValuesSource}.
      *
@@ -57,13 +61,14 @@ abstract class SingleDimensionValuesSource<T extends Comparable<T>> implements R
      * @param reverseMul -1 if the natural order ({@link SortOrder#ASC} should be reversed.
      */
     SingleDimensionValuesSource(DocValueFormat format, @Nullable MappedFieldType fieldType, @Nullable Object missing,
-                                int size, int reverseMul) {
+                                int size, int reverseMul, Supplier<Weight> supplier) {
         this.format = format;
         this.fieldType = fieldType;
         this.missing = missing;
         this.size = size;
         this.reverseMul = reverseMul;
         this.afterValue = null;
+        this.supplier = supplier;
     }
 
     /**

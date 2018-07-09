@@ -24,6 +24,7 @@ import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.SortedSetDocValues;
 import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Weight;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.lease.Releasables;
@@ -35,6 +36,7 @@ import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.LeafBucketCollector;
 
 import java.io.IOException;
+import java.util.function.Supplier;
 
 import static org.apache.lucene.index.SortedSetDocValues.NO_MORE_ORDS;
 
@@ -54,8 +56,8 @@ class GlobalOrdinalValuesSource extends SingleDimensionValuesSource<BytesRef> {
 
     GlobalOrdinalValuesSource(BigArrays bigArrays,
                               MappedFieldType type, CheckedFunction<LeafReaderContext, SortedSetDocValues, IOException> docValuesFunc,
-                              DocValueFormat format, Object missing, int size, int reverseMul) {
-        super(format, type, missing, size, reverseMul);
+                              DocValueFormat format, Object missing, int size, int reverseMul, Supplier<Weight> supplier) {
+        super(format, type, missing, size, reverseMul, supplier);
         this.docValuesFunc = docValuesFunc;
         this.values = bigArrays.newLongArray(size, false);
     }

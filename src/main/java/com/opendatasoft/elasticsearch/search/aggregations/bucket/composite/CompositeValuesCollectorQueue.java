@@ -20,9 +20,12 @@
 package com.opendatasoft.elasticsearch.search.aggregations.bucket.composite;
 
 import org.apache.lucene.index.LeafReaderContext;
+import org.apache.lucene.util.Bits;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
+import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.search.aggregations.LeafBucketCollector;
+import org.elasticsearch.search.aggregations.LeafBucketCollectorBase;
 
 import java.io.IOException;
 import java.util.Arrays;
@@ -188,14 +191,38 @@ final class CompositeValuesCollectorQueue implements Releasable {
         int last = arrays.length - 1;
         LeafBucketCollector collector = in;
         while (last > 0) {
-            collector = arrays[last--].getLeafCollector(context, collector);
+            SingleDimensionValuesSource<?> singleDimensionValuesSource = arrays[last--];
+            collector = getFilteredBucketCollector(
+                    singleDimensionValuesSource, context, singleDimensionValuesSource.getLeafCollector(context, collector)
+            );
         }
         if (forceLeadSourceValue != null) {
-            collector = arrays[last].getLeafCollector(forceLeadSourceValue, context, collector);
+            collector = getFilteredBucketCollector(
+                    arrays[last], context, arrays[last].getLeafCollector(forceLeadSourceValue, context, collector)
+            );
         } else {
-            collector = arrays[last].getLeafCollector(context, collector);
+            collector = getFilteredBucketCollector(
+                    arrays[last], context, arrays[last].getLeafCollector(context, collector)
+            );
         }
         return collector;
+    }
+
+    LeafBucketCollector getFilteredBucketCollector(
+            SingleDimensionValuesSource<?> singleDimensionValuesSource, LeafReaderContext context, LeafBucketCollector next) throws IOException {
+        if (singleDimensionValuesSource.supplier != null) {
+            final Bits bits = Lucene.asSequentialAccessBits(
+                    context.reader().maxDoc(), singleDimensionValuesSource.supplier.get().scorerSupplier(context));
+            return new LeafBucketCollectorBase(next, null) {
+                @Override
+                public void collect(int doc, long bucket) throws IOException {
+                    if (bits.get(doc)) {
+                        next.collect(doc, bucket);
+                    }
+                }
+            };
+        }
+        return next;
     }
 
     /**

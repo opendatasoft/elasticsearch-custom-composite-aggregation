@@ -19,11 +19,19 @@
 
 package com.opendatasoft.elasticsearch.search.aggregations.bucket.composite;
 
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Weight;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.DocValueFormat;
+import org.elasticsearch.search.aggregations.AggregationInitializationException;
 import org.elasticsearch.search.aggregations.support.ValuesSource;
+import org.elasticsearch.search.internal.SearchContext;
 import org.elasticsearch.search.sort.SortOrder;
+
+import java.io.IOException;
 
 class CompositeValuesSourceConfig {
     private final String name;
@@ -33,6 +41,9 @@ class CompositeValuesSourceConfig {
     private final DocValueFormat format;
     private final int reverseMul;
     private final Object missing;
+    private Query filter;
+    private Weight weight;
+    private SearchContext context;
 
     /**
      * Creates a new {@link CompositeValuesSourceConfig}.
@@ -44,13 +55,17 @@ class CompositeValuesSourceConfig {
      * @param missing The missing value or null if documents with missing value should be ignored.
      */
     CompositeValuesSourceConfig(String name, @Nullable MappedFieldType fieldType, ValuesSource vs, DocValueFormat format,
-                                SortOrder order, @Nullable Object missing) {
+                                SortOrder order, @Nullable Object missing, SearchContext context, QueryBuilder filterBuilder) throws IOException {
         this.name = name;
         this.fieldType = fieldType;
         this.vs = vs;
         this.format = format;
         this.reverseMul = order == SortOrder.ASC ? 1 : -1;
         this.missing = missing;
+        if (filterBuilder != null) {
+            filter = filterBuilder.toFilter(context.getQueryShardContext());
+        }
+        this.context = context;
     }
 
     /**
@@ -95,5 +110,18 @@ class CompositeValuesSourceConfig {
     int reverseMul() {
         assert reverseMul == -1 || reverseMul == 1;
         return reverseMul;
+    }
+
+    Weight weight() {
+        if (filter == null) return null;
+        if (weight == null) {
+            IndexSearcher contextSearcher = context.searcher();
+            try {
+                weight = contextSearcher.createNormalizedWeight(filter, false);
+            } catch (IOException e) {
+                throw new AggregationInitializationException("Failed to initialse filter", e);
+            }
+        }
+        return weight;
     }
 }

@@ -22,6 +22,7 @@ package com.opendatasoft.elasticsearch.search.aggregations.bucket.composite;
 import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Weight;
 import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.BigArrays;
@@ -32,6 +33,7 @@ import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.LeafBucketCollector;
 
 import java.io.IOException;
+import java.util.function.Supplier;
 
 /**
  * A {@link SingleDimensionValuesSource} for doubles.
@@ -43,8 +45,8 @@ class DoubleValuesSource extends SingleDimensionValuesSource<Double> {
 
     DoubleValuesSource(BigArrays bigArrays, MappedFieldType fieldType,
                        CheckedFunction<LeafReaderContext, SortedNumericDoubleValues, IOException> docValuesFunc,
-                       DocValueFormat format, Object missing, int size, int reverseMul) {
-        super(format, fieldType, missing, size, reverseMul);
+                       DocValueFormat format, Object missing, int size, int reverseMul, Supplier<Weight> supplier) {
+        super(format, fieldType, missing, size, reverseMul, supplier);
         this.docValuesFunc = docValuesFunc;
         this.values = bigArrays.newDoubleArray(size, false);
     }

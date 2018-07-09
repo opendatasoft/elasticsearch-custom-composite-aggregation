@@ -25,6 +25,7 @@ import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
 import org.elasticsearch.common.xcontent.ToXContentFragment;
 import org.elasticsearch.common.xcontent.XContentBuilder;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.index.query.QueryShardException;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.search.aggregations.support.ValueType;
@@ -47,6 +48,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
     private Object missing = null;
     private SortOrder order = SortOrder.ASC;
     private String format = null;
+    private QueryBuilder filter = null;
 
     CompositeValuesSourceBuilder(String name) {
         this(name, null);
@@ -73,6 +75,9 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
         } else {
             this.format = null;
         }
+        if (in.readBoolean()) {
+            filter = in.readNamedWriteable(QueryBuilder.class);
+        }
     }
 
     @Override
@@ -95,6 +100,11 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
             out.writeOptionalString(format);
         }
         innerWriteTo(out);
+        boolean hasFilter = filter != null;
+        out.writeBoolean(hasFilter);
+        if (hasFilter) {
+            out.writeNamedWriteable(filter);
+        }
     }
 
     protected abstract void innerWriteTo(StreamOutput out) throws IOException;
@@ -119,6 +129,9 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
         if (format != null) {
             builder.field("format", format);
         }
+        if (filter != null) {
+            filter.toXContent(builder, params);
+        }
         builder.field("order", order);
         doXContentBody(builder, params);
         builder.endObject();
@@ -127,7 +140,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
 
     @Override
     public final int hashCode() {
-        return Objects.hash(field, missing, script, valueType, order, format, innerHashCode());
+        return Objects.hash(field, missing, script, valueType, order, format, filter, innerHashCode());
     }
 
     protected abstract int innerHashCode();
@@ -145,6 +158,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
             Objects.equals(missing, that.missing()) &&
             Objects.equals(order, that.order()) &&
             Objects.equals(format, that.format()) &&
+            Objects.equals(filter, that.filter()) &&
             innerEquals(that);
     }
 
@@ -173,6 +187,25 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
      */
     public String field() {
         return field;
+    }
+
+    /**
+     * Sets the filter to use for this source
+     */
+    @SuppressWarnings("unchecked")
+    public AB filter(QueryBuilder filter) {
+        if (filter == null) {
+            throw new IllegalArgumentException("[filter] must not be null");
+        }
+        this.filter = filter;
+        return (AB) this;
+    }
+
+    /**
+     * Gets the field to use for this source
+     */
+    public QueryBuilder filter() {
+        return filter;
     }
 
     /**

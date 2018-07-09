@@ -50,6 +50,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 final class CompositeAggregator extends BucketsAggregator {
@@ -186,6 +187,7 @@ final class CompositeAggregator extends BucketsAggregator {
 
             @Override
             public void collect(int doc, long bucket) throws IOException {
+
                 int slot = queue.addIfCompetitive();
                 if (slot != -1) {
                     if (builder != null && lastDoc != doc) {
@@ -260,6 +262,11 @@ final class CompositeAggregator extends BucketsAggregator {
                                                                         CompositeValuesSourceConfig[] configs, int size) {
         final SingleDimensionValuesSource<?>[] sources = new SingleDimensionValuesSource<?>[configs.length];
         for (int i = 0; i < sources.length; i++) {
+            Supplier<Weight> supplier = null;
+            if (configs[i].weight() != null) {
+                Weight weight = configs[i].weight();
+                supplier = () -> weight;
+            }
             final int reverseMul = configs[i].reverseMul();
             if (configs[i].valuesSource() instanceof ValuesSource.Bytes.WithOrdinals && reader instanceof DirectoryReader) {
                 ValuesSource.Bytes.WithOrdinals vs = (ValuesSource.Bytes.WithOrdinals) configs[i].valuesSource();
@@ -270,7 +277,8 @@ final class CompositeAggregator extends BucketsAggregator {
                     configs[i].format(),
                     configs[i].missing(),
                     size,
-                    reverseMul
+                    reverseMul,
+                    supplier
                 );
 
                 if (i == 0 && sources[i].createSortedDocsProducerOrNull(reader, query) != null) {
@@ -284,7 +292,8 @@ final class CompositeAggregator extends BucketsAggregator {
                         configs[i].format(),
                         configs[i].missing(),
                         size,
-                        reverseMul
+                        reverseMul,
+                        supplier
                     );
                 }
             } else if (configs[i].valuesSource() instanceof ValuesSource.Bytes) {
@@ -295,7 +304,8 @@ final class CompositeAggregator extends BucketsAggregator {
                     configs[i].format(),
                     configs[i].missing(),
                     size,
-                    reverseMul
+                    reverseMul,
+                    supplier
                 );
 
             } else if (configs[i].valuesSource() instanceof ValuesSource.Numeric) {
@@ -308,7 +318,8 @@ final class CompositeAggregator extends BucketsAggregator {
                         configs[i].format(),
                         configs[i].missing(),
                         size,
-                        reverseMul
+                        reverseMul,
+                        supplier
                     );
 
                 } else {
@@ -321,7 +332,8 @@ final class CompositeAggregator extends BucketsAggregator {
                             configs[i].format(),
                             configs[i].missing(),
                             size,
-                            reverseMul
+                            reverseMul,
+                            supplier
                         );
 
                     } else {
@@ -333,7 +345,8 @@ final class CompositeAggregator extends BucketsAggregator {
                             configs[i].format(),
                             configs[i].missing(),
                             size,
-                            reverseMul
+                            reverseMul,
+                            supplier
                         );
 
                     }
