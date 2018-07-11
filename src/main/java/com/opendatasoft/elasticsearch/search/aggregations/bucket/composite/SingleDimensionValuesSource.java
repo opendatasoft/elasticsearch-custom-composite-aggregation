@@ -24,9 +24,11 @@ import org.apache.lucene.index.IndexReader;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.join.BitSetProducer;
 import org.elasticsearch.common.Nullable;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.LeafBucketCollector;
 import org.elasticsearch.search.sort.SortOrder;
@@ -49,7 +51,11 @@ abstract class SingleDimensionValuesSource<T extends Comparable<T>> implements R
 
     protected T afterValue;
 
-    protected Supplier<Weight> supplier;
+    protected Weight weight;
+
+    protected ObjectMapper childObjectMapper;
+
+    protected BitSetProducer parentFilter;
 
     /**
      * Creates a new {@link SingleDimensionValuesSource}.
@@ -61,14 +67,17 @@ abstract class SingleDimensionValuesSource<T extends Comparable<T>> implements R
      * @param reverseMul -1 if the natural order ({@link SortOrder#ASC} should be reversed.
      */
     SingleDimensionValuesSource(DocValueFormat format, @Nullable MappedFieldType fieldType, @Nullable Object missing,
-                                int size, int reverseMul, Supplier<Weight> supplier) {
+                                int size, int reverseMul, Weight weight, ObjectMapper childObjectMapper,
+                                BitSetProducer parentFilter) {
         this.format = format;
         this.fieldType = fieldType;
         this.missing = missing;
         this.size = size;
         this.reverseMul = reverseMul;
         this.afterValue = null;
-        this.supplier = supplier;
+        this.weight = weight;
+        this.childObjectMapper = childObjectMapper;
+        this.parentFilter = parentFilter;
     }
 
     /**

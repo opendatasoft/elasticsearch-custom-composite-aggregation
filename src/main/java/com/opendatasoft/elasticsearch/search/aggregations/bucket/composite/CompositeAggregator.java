@@ -29,9 +29,11 @@ import org.apache.lucene.search.MultiCollector;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Scorer;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.join.BitSetProducer;
 import org.apache.lucene.util.RoaringDocIdSet;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.Aggregator;
 import org.elasticsearch.search.aggregations.AggregatorFactories;
@@ -50,7 +52,6 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 import java.util.stream.Collectors;
 
 final class CompositeAggregator extends BucketsAggregator {
@@ -172,6 +173,7 @@ final class CompositeAggregator extends BucketsAggregator {
                 @Override
                 public void collect(int doc, long zeroBucket) throws IOException {
                     assert zeroBucket == 0L;
+//                    System.out.println("First Collecting");
                     inner.collect(doc);
                 }
             };
@@ -204,6 +206,7 @@ final class CompositeAggregator extends BucketsAggregator {
      * the {@link this#deferredCollectors}.
      */
     private void runDeferredCollections() throws IOException {
+        System.out.println("runDeferredCollections");
         final boolean needsScores = needsScores();
         Weight weight = null;
         if (needsScores) {
@@ -262,11 +265,10 @@ final class CompositeAggregator extends BucketsAggregator {
                                                                         CompositeValuesSourceConfig[] configs, int size) {
         final SingleDimensionValuesSource<?>[] sources = new SingleDimensionValuesSource<?>[configs.length];
         for (int i = 0; i < sources.length; i++) {
-            Supplier<Weight> supplier = null;
-            if (configs[i].weight() != null) {
-                Weight weight = configs[i].weight();
-                supplier = () -> weight;
-            }
+            Weight weight = configs[i].weight();
+            ObjectMapper childObjectMapper = configs[i].childObjectMapper();
+            BitSetProducer parentFilter = configs[i].parentFilter();
+
             final int reverseMul = configs[i].reverseMul();
             if (configs[i].valuesSource() instanceof ValuesSource.Bytes.WithOrdinals && reader instanceof DirectoryReader) {
                 ValuesSource.Bytes.WithOrdinals vs = (ValuesSource.Bytes.WithOrdinals) configs[i].valuesSource();
@@ -278,7 +280,9 @@ final class CompositeAggregator extends BucketsAggregator {
                     configs[i].missing(),
                     size,
                     reverseMul,
-                    supplier
+                    weight,
+                    childObjectMapper,
+                    parentFilter
                 );
 
                 if (i == 0 && sources[i].createSortedDocsProducerOrNull(reader, query) != null) {
@@ -293,7 +297,9 @@ final class CompositeAggregator extends BucketsAggregator {
                         configs[i].missing(),
                         size,
                         reverseMul,
-                        supplier
+                        weight,
+                        childObjectMapper,
+                        parentFilter
                     );
                 }
             } else if (configs[i].valuesSource() instanceof ValuesSource.Bytes) {
@@ -305,7 +311,9 @@ final class CompositeAggregator extends BucketsAggregator {
                     configs[i].missing(),
                     size,
                     reverseMul,
-                    supplier
+                    weight,
+                    childObjectMapper,
+                    parentFilter
                 );
 
             } else if (configs[i].valuesSource() instanceof ValuesSource.Numeric) {
@@ -319,7 +327,9 @@ final class CompositeAggregator extends BucketsAggregator {
                         configs[i].missing(),
                         size,
                         reverseMul,
-                        supplier
+                        weight,
+                        childObjectMapper,
+                        parentFilter
                     );
 
                 } else {
@@ -333,7 +343,9 @@ final class CompositeAggregator extends BucketsAggregator {
                             configs[i].missing(),
                             size,
                             reverseMul,
-                            supplier
+                            weight,
+                            childObjectMapper,
+                            parentFilter
                         );
 
                     } else {
@@ -346,7 +358,9 @@ final class CompositeAggregator extends BucketsAggregator {
                             configs[i].missing(),
                             size,
                             reverseMul,
-                            supplier
+                            weight,
+                            childObjectMapper,
+                            parentFilter
                         );
 
                     }

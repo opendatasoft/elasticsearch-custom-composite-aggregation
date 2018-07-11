@@ -49,6 +49,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
     private SortOrder order = SortOrder.ASC;
     private String format = null;
     private QueryBuilder filter = null;
+    private String nestedPath = null;
 
     CompositeValuesSourceBuilder(String name) {
         this(name, null);
@@ -206,6 +207,25 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
      */
     public QueryBuilder filter() {
         return filter;
+    }
+
+    /**
+     * Sets the filter to use for this source
+     */
+    @SuppressWarnings("unchecked")
+    public AB nestedPath(String nestedPath) {
+        if (nestedPath == null) {
+            throw new IllegalArgumentException("[nested_path] must not be null");
+        }
+        this.nestedPath = nestedPath;
+        return (AB) this;
+    }
+
+    /**
+     * Gets the field to use for this source
+     */
+    public String nestedPath() {
+        return nestedPath;
     }
 
     /**

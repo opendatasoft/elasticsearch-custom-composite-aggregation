@@ -390,8 +390,11 @@ public class InternalComposite
         ArrayMap(List<String> keys, List<DocValueFormat> formats, Object[] values) {
             assert keys.size() == values.length && keys.size() == formats.size();
             this.keys = keys;
+            System.out.println("keys == " + keys);
             this.formats = formats;
+            System.out.println("formats == " + formats);
             this.values = values;
+            System.out.println("values == " + values);
         }
 
         @Override

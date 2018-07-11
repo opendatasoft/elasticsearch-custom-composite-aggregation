@@ -28,6 +28,7 @@ import org.apache.lucene.search.MatchAllDocsQuery;
 import org.apache.lucene.search.PointRangeQuery;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.join.BitSetProducer;
 import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.BigArrays;
@@ -35,6 +36,7 @@ import org.elasticsearch.common.util.LongArray;
 import org.elasticsearch.index.mapper.DateFieldMapper;
 import org.elasticsearch.index.mapper.MappedFieldType;
 import org.elasticsearch.index.mapper.NumberFieldMapper;
+import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.LeafBucketCollector;
 
@@ -56,8 +58,8 @@ class LongValuesSource extends SingleDimensionValuesSource<Long> {
     LongValuesSource(BigArrays bigArrays, MappedFieldType fieldType,
                      CheckedFunction<LeafReaderContext, SortedNumericDocValues, IOException> docValuesFunc,
                      LongUnaryOperator rounding, DocValueFormat format, Object missing, int size, int reverseMul,
-                     Supplier<Weight> supplier) {
-        super(format, fieldType, missing, size, reverseMul, supplier);
+                     Weight weight, ObjectMapper childObjectMapper, BitSetProducer parentFilter) {
+        super(format, fieldType, missing, size, reverseMul, weight, childObjectMapper, parentFilter);
         this.docValuesFunc = docValuesFunc;
         this.rounding = rounding;
         this.values = bigArrays.newLongArray(size, false);

@@ -19,18 +19,16 @@
 
 package com.opendatasoft.elasticsearch.search.aggregations.bucket.composite;
 
-import org.apache.lucene.index.IndexReader;
-import org.apache.lucene.index.LeafReaderContext;
-import org.apache.lucene.index.SortedSetDocValues;
-import org.apache.lucene.search.MatchAllDocsQuery;
-import org.apache.lucene.search.Query;
-import org.apache.lucene.search.Weight;
+import org.apache.lucene.index.*;
+import org.apache.lucene.search.*;
+import org.apache.lucene.search.join.BitSetProducer;
 import org.apache.lucene.util.BytesRef;
 import org.elasticsearch.common.CheckedFunction;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.util.BigArrays;
 import org.elasticsearch.common.util.LongArray;
 import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.mapper.StringFieldType;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.LeafBucketCollector;
@@ -56,9 +54,11 @@ class GlobalOrdinalValuesSource extends SingleDimensionValuesSource<BytesRef> {
 
     GlobalOrdinalValuesSource(BigArrays bigArrays,
                               MappedFieldType type, CheckedFunction<LeafReaderContext, SortedSetDocValues, IOException> docValuesFunc,
-                              DocValueFormat format, Object missing, int size, int reverseMul, Supplier<Weight> supplier) {
-        super(format, type, missing, size, reverseMul, supplier);
+                              DocValueFormat format, Object missing, int size, int reverseMul, Weight weight,
+                              ObjectMapper childObjectMapper, BitSetProducer parentFilter) {
+        super(format, type, missing, size, reverseMul, weight, childObjectMapper, parentFilter);
         this.docValuesFunc = docValuesFunc;
+        System.out.println("New global ordinal values source");
         this.values = bigArrays.newLongArray(size, false);
     }
 
@@ -116,6 +116,7 @@ class GlobalOrdinalValuesSource extends SingleDimensionValuesSource<BytesRef> {
         if (lookup == null) {
             initLookup(dvs);
         }
+        System.out.println("will get value for field == " + fieldType.name());
         return new LeafBucketCollector() {
             @Override
             public void collect(int doc, long bucket) throws IOException {

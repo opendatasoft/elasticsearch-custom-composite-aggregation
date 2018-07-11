@@ -63,6 +63,8 @@ class CompositeValuesSourceParserHelper {
         objectParser.declareField(
                 VB::filter, (parser, context) -> parseInnerQueryBuilder(parser), new ParseField("filter"),
                 ObjectParser.ValueType.OBJECT);
+
+        objectParser.declareField(VB::nestedPath,  XContentParser::text, new ParseField("nested_path"), ObjectParser.ValueType.STRING);
     }
 
     static void writeTo(CompositeValuesSourceBuilder<?> builder, StreamOutput out) throws IOException {

@@ -22,8 +22,11 @@ package com.opendatasoft.elasticsearch.search.aggregations.bucket.composite;
 import org.apache.lucene.search.IndexSearcher;
 import org.apache.lucene.search.Query;
 import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.join.BitSetProducer;
 import org.elasticsearch.common.Nullable;
+import org.elasticsearch.common.lucene.search.Queries;
 import org.elasticsearch.index.mapper.MappedFieldType;
+import org.elasticsearch.index.mapper.ObjectMapper;
 import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.search.DocValueFormat;
 import org.elasticsearch.search.aggregations.AggregationInitializationException;
@@ -44,6 +47,8 @@ class CompositeValuesSourceConfig {
     private Query filter;
     private Weight weight;
     private SearchContext context;
+    private ObjectMapper childObjectMapper;
+    private BitSetProducer parentFilter;
 
     /**
      * Creates a new {@link CompositeValuesSourceConfig}.
@@ -55,7 +60,8 @@ class CompositeValuesSourceConfig {
      * @param missing The missing value or null if documents with missing value should be ignored.
      */
     CompositeValuesSourceConfig(String name, @Nullable MappedFieldType fieldType, ValuesSource vs, DocValueFormat format,
-                                SortOrder order, @Nullable Object missing, SearchContext context, QueryBuilder filterBuilder) throws IOException {
+                                SortOrder order, @Nullable Object missing, SearchContext context, QueryBuilder filterBuilder,
+                                String nestedPath) throws IOException {
         this.name = name;
         this.fieldType = fieldType;
         this.vs = vs;
@@ -64,6 +70,21 @@ class CompositeValuesSourceConfig {
         this.missing = missing;
         if (filterBuilder != null) {
             filter = filterBuilder.toFilter(context.getQueryShardContext());
+        }
+        if (nestedPath != null) {
+            ObjectMapper childObjectMapper = context.getObjectMapper(nestedPath);
+            if (childObjectMapper != null && childObjectMapper.nested().isNested()) {
+                this.childObjectMapper = childObjectMapper;
+            }
+
+            try {
+                ObjectMapper parentObjectMapper = context.getQueryShardContext().nestedScope().nextLevel(childObjectMapper);
+                Query parentFilter = parentObjectMapper != null ? parentObjectMapper.nestedTypeFilter()
+                        : Queries.newNonNestedFilter(context.mapperService().getIndexSettings().getIndexVersionCreated());
+                this.parentFilter = context.bitsetFilterCache().getBitSetProducer(parentFilter);
+            } finally {
+                context.getQueryShardContext().nestedScope().previousLevel();
+            }
         }
         this.context = context;
     }
@@ -123,5 +144,13 @@ class CompositeValuesSourceConfig {
             }
         }
         return weight;
+    }
+
+    ObjectMapper childObjectMapper() {
+        return childObjectMapper;
+    }
+
+    BitSetProducer parentFilter() {
+        return parentFilter;
     }
 }
