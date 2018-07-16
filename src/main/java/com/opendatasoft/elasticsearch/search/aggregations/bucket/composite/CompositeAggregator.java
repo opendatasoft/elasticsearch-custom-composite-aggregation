@@ -173,7 +173,6 @@ final class CompositeAggregator extends BucketsAggregator {
                 @Override
                 public void collect(int doc, long zeroBucket) throws IOException {
                     assert zeroBucket == 0L;
-//                    System.out.println("First Collecting");
                     inner.collect(doc);
                 }
             };
@@ -206,7 +205,6 @@ final class CompositeAggregator extends BucketsAggregator {
      * the {@link this#deferredCollectors}.
      */
     private void runDeferredCollections() throws IOException {
-        System.out.println("runDeferredCollections");
         final boolean needsScores = needsScores();
         Weight weight = null;
         if (needsScores) {

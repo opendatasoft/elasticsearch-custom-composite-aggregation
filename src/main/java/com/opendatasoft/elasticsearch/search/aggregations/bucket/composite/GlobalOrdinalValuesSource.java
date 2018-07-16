@@ -58,7 +58,6 @@ class GlobalOrdinalValuesSource extends SingleDimensionValuesSource<BytesRef> {
                               ObjectMapper childObjectMapper, BitSetProducer parentFilter) {
         super(format, type, missing, size, reverseMul, weight, childObjectMapper, parentFilter);
         this.docValuesFunc = docValuesFunc;
-        System.out.println("New global ordinal values source");
         this.values = bigArrays.newLongArray(size, false);
     }
 
@@ -116,7 +115,6 @@ class GlobalOrdinalValuesSource extends SingleDimensionValuesSource<BytesRef> {
         if (lookup == null) {
             initLookup(dvs);
         }
-        System.out.println("will get value for field == " + fieldType.name());
         return new LeafBucketCollector() {
             @Override
             public void collect(int doc, long bucket) throws IOException {
