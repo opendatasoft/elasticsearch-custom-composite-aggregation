@@ -79,6 +79,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
         if (in.readBoolean()) {
             filter = in.readNamedWriteable(QueryBuilder.class);
         }
+        this.nestedPath = in.readOptionalString();
     }
 
     @Override
@@ -106,6 +107,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
         if (hasFilter) {
             out.writeNamedWriteable(filter);
         }
+        out.writeOptionalString(nestedPath);
     }
 
     protected abstract void innerWriteTo(StreamOutput out) throws IOException;
@@ -133,6 +135,9 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
         if (filter != null) {
             filter.toXContent(builder, params);
         }
+        if (nestedPath != null) {
+            builder.field("nested_path", nestedPath);
+        }
         builder.field("order", order);
         doXContentBody(builder, params);
         builder.endObject();
@@ -141,7 +146,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
 
     @Override
     public final int hashCode() {
-        return Objects.hash(field, missing, script, valueType, order, format, filter, innerHashCode());
+        return Objects.hash(field, missing, script, valueType, order, format, filter, nestedPath, innerHashCode());
     }
 
     protected abstract int innerHashCode();
@@ -160,6 +165,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
             Objects.equals(order, that.order()) &&
             Objects.equals(format, that.format()) &&
             Objects.equals(filter, that.filter()) &&
+            Objects.equals(nestedPath, that.nestedPath()) &&
             innerEquals(that);
     }
 
