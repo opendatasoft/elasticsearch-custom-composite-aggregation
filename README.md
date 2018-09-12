@@ -1,78 +1,67 @@
-Elasticsearch Aggregation Envelope Plugin
-=========================================
+Elasticsearch composite aggregation with nested and filter
+==========================================================
 
-The envelope aggregation plugin adds the possibility to compute convex envelope for geo points.
-
-This is a metric aggregation.
-
-|   Envelope aggregation Plugin  | elasticsearch     | Release date |
-|--------------------------------|-------------------|:------------:|
-| 6.2.4                          | 6.2.4             |              |
-| 1.2.0                          | 1.4.0 -> master   |  2014-11-27  |
-| 1.1.0                          | 1.3.0             |  2014-07-25  |
-| 1.0.0                          | 1.2.2             |  2014-07-16  |
+This aggregations is a copy of elasticsearch composite aggregation (https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-composite-aggregation.html), but allow utilisation of multiple sources that can be nested and/or filtered.
 
 
-Usage
------
+In addition to the original composite aggregation, each source can allow two new parameters :
 
-```json
-{
-  "aggregations": {
-    "<aggregation_name>": {
-      "envelope": {
-        "field": "<field_name>"
-      }
-    }
-  }
-}
-```
-
-`field` must be of type geo_point.
-
-It returns a Geometry:
-
-- Point if the bucket contains only one unique point
-- LineString if the bucket contains two unique points
-- Polygon if the bucket contains more than three unique points
+ - `nested_path`: define a nested path to retrieve nested document for this source.
+ - `filter`: define a filter for a source. This parameter can take any elasticsearch filter 
+ 
 
 For example :
 
 ```json
 {
-  "type": "Polygon",
-  "coordinates": [
-         [
-            [
-               2.3561,
-               48.8322
-            ],
-            [
-               2.33,
-               48.8493
-            ],
-            [
-               2.3333,
-               48.8667
-            ],
-            [
-               2.3615,
-               48.8637
-            ],
-            [
-               2.3561,
-               48.8322
-            ]
-         ]
-    ]
+    "aggregations" : {
+        "my_composite" : {
+            "composite_nested": {
+              "source": [
+                {
+                    "specie": {
+                      "terms": {
+                        "field": "fields.str_val.raw",
+                        "nested_path": "fields",
+                        "filter": {
+                          "term": {
+                            "fields.key": "specie"
+                          }
+                        }
+                      }
+                    }
+                  },
+                  {
+                    "city": {
+                      "terms": {
+                        "field": "fields.long_val",
+                        "nested_path": "fields",
+                        "filter": {
+                          "term": {
+                            "fields.key": "city"
+                          }
+                        }
+                      }
+                    }
+                  }
+              ]
+            }
+        }
+    }
 }
 ```
+
 Installation
 ------------
 
-`bin/plugin --install envelope_aggregation --url "https://github.com/opendatasoft/elasticsearch-aggregation-envelope/releases/download/v1.2.0/elasticsearch-envelope-aggregation-1.2.0.zip"`
+Plugin versions are available for (at least) all minor versions of Elasticsearch since 6.0.
 
-License
--------
+The first 3 digits of plugin version is Elasticsearch versioning. The last digit is used for plugin versioning under an elasticsearch version.
 
-This software is under The MIT License (MIT)
+To install it, launch this command in Elasticsearch directory replacing the url by the correct link for your Elasticsearch version (see table)
+`./bin/elasticsearch-plugin install https://github.com/opendatasoft/elasticsearch-composite-with-filter-aggregation/releases/download/v6.0.1.0/elasticsearch-composite-with-filter-aggregation-6.0.1.0.zip`
+
+| elasticsearch version | plugin version | plugin url |
+| --------------------- | -------------- | ---------- |
+| 6.0.1 | 6.0.1.0 | https://github.com/opendatasoft/elasticsearch-composite-with-filter-aggregation/releases/download/v6.0.1.0/elasticsearch-composite-with-filter-aggregation-6.0.1.0.zip`
+

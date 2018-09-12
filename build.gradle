@@ -5,6 +5,10 @@ buildscript {
         mavenLocal()
         mavenCentral()
         jcenter()
+        maven {
+            name "elastic"
+            url "https://artifacts.elastic.co/maven"
+        }
     }
 
     dependencies {
@@ -24,9 +28,9 @@ licenseFile = rootProject.file('LICENSE')
 noticeFile = rootProject.file('README.md')
 
 esplugin {
-    name 'composite-nested-aggegation'
-    description 'Aggregate clusters from geohash grid aggregation'
-    classname 'com.opendatasoft.elasticsearch.plugin.CompositeWithNestedAggregationPlugin'
+    name 'composite-filter-nested-aggregation'
+    description 'Composite aggregation with filter and nested support'
+    classname 'com.opendatasoft.elasticsearch.plugin.CompositeWithFilterNestedAggregationPlugin'
     licenseFile = rootProject.file('LICENSE')
     noticeFile = rootProject.file('README.md')
 }
@@ -35,8 +39,6 @@ dependencies {
     compile "org.elasticsearch:elasticsearch:${es_version}"
     testCompile "org.elasticsearch.test:framework:${es_version}"
 }
-
-test.enabled = false
 
 // Skip license headers check
 licenseHeaders.enabled = false
