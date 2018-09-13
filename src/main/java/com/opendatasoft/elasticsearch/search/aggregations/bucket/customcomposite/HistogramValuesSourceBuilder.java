@@ -1,4 +1,4 @@
-package com.opendatasoft.elasticsearch.search.aggregations.bucket.custom_composite;
+package com.opendatasoft.elasticsearch.search.aggregations.bucket.customcomposite;
 
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
@@ -96,7 +96,8 @@ public class HistogramValuesSourceBuilder extends CompositeValuesSourceBuilder<H
             ValuesSource.Numeric numeric = (ValuesSource.Numeric) orig;
             final HistogramValuesSource vs = new HistogramValuesSource(numeric, interval);
             final MappedFieldType fieldType = config.fieldContext() != null ? config.fieldContext().fieldType() : null;
-            return new CompositeValuesSourceConfig(name, fieldType, vs, config.format(), order(), missing(), context, filter(), nestedPath());
+            return new CompositeValuesSourceConfig(
+                    name, fieldType, vs, config.format(), order(), missing(), context, filter(), nestedPath());
         } else {
             throw new IllegalArgumentException("invalid source, expected numeric, got " + orig.getClass().getSimpleName());
         }

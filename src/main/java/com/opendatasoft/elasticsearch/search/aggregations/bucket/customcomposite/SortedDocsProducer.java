@@ -1,4 +1,4 @@
-package com.opendatasoft.elasticsearch.search.aggregations.bucket.custom_composite;
+package com.opendatasoft.elasticsearch.search.aggregations.bucket.customcomposite;
 
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.search.DocIdSet;

@@ -1,4 +1,4 @@
-package com.opendatasoft.elasticsearch.search.aggregations.bucket.custom_composite;
+package com.opendatasoft.elasticsearch.search.aggregations.bucket.customcomposite;
 
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;

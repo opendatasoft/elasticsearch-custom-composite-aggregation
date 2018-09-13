@@ -1,7 +1,7 @@
 package com.opendatasoft.elasticsearch.plugin;
 
-import com.opendatasoft.elasticsearch.search.aggregations.bucket.custom_composite.CompositeAggregationBuilder;
-import com.opendatasoft.elasticsearch.search.aggregations.bucket.custom_composite.InternalComposite;
+import com.opendatasoft.elasticsearch.search.aggregations.bucket.customcomposite.CompositeAggregationBuilder;
+import com.opendatasoft.elasticsearch.search.aggregations.bucket.customcomposite.InternalComposite;
 import org.elasticsearch.plugins.Plugin;
 import org.elasticsearch.plugins.SearchPlugin;
 

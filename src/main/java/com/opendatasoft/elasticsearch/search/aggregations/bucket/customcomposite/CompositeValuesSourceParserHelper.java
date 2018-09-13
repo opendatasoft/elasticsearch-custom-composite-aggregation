@@ -1,4 +1,4 @@
-package com.opendatasoft.elasticsearch.search.aggregations.bucket.custom_composite;
+package com.opendatasoft.elasticsearch.search.aggregations.bucket.customcomposite;
 
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.ParsingException;
@@ -17,7 +17,7 @@ import static org.elasticsearch.index.query.AbstractQueryBuilder.parseInnerQuery
 
 class CompositeValuesSourceParserHelper {
     static <VB extends CompositeValuesSourceBuilder<VB>, T> void declareValuesSourceFields(AbstractObjectParser<VB, T> objectParser,
-                                                                                                                                                               ValueType targetValueType) {
+                                                                                           ValueType targetValueType) {
         objectParser.declareField(VB::field, XContentParser::text,
             new ParseField("field"), ObjectParser.ValueType.STRING);
 

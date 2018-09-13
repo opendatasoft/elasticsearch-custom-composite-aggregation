@@ -1,9 +1,13 @@
-package com.opendatasoft.elasticsearch.search.aggregations.bucket.custom_composite;
+package com.opendatasoft.elasticsearch.search.aggregations.bucket.customcomposite;
 
 import org.apache.lucene.index.IndexReaderContext;
 import org.apache.lucene.index.LeafReaderContext;
 import org.apache.lucene.index.ReaderUtil;
-import org.apache.lucene.search.*;
+import org.apache.lucene.search.DocIdSetIterator;
+import org.apache.lucene.search.IndexSearcher;
+import org.apache.lucene.search.Query;
+import org.apache.lucene.search.Weight;
+import org.apache.lucene.search.Scorer;
 import org.apache.lucene.util.BitSet;
 import org.apache.lucene.util.Bits;
 import org.elasticsearch.common.lease.Releasable;
@@ -12,7 +16,9 @@ import org.elasticsearch.common.lucene.Lucene;
 import org.elasticsearch.search.aggregations.LeafBucketCollector;
 
 import java.io.IOException;
-import java.util.*;
+import java.util.Arrays;
+import java.util.Set;
+import java.util.TreeMap;
 
 /**
  * A specialized queue implementation for composite buckets
@@ -229,7 +235,7 @@ final class CompositeValuesCollectorQueue implements Releasable {
         LeafBucketCollector next;
         Bits filter = null;
 
-        public InternalCollector(
+        InternalCollector(
                 SingleDimensionValuesSource<?> singleDimensionValuesSource, LeafReaderContext context,
                 LeafBucketCollector next, Comparable<?> forceLeadSourceValue) throws IOException {
 

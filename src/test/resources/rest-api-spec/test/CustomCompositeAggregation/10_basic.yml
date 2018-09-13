@@ -7,4 +7,4 @@
   - do:
       nodes.info: {}
 
-  - match: {nodes.$master.plugins.0.name: composite-filter-nested-aggregation}
+  - match: {nodes.$master.plugins.0.name: custom-composite-aggregation}
