@@ -1,4 +1,4 @@
-package com.opendatasoft.elasticsearch.search.aggregations.bucket.composite_filter_nested;
+package com.opendatasoft.elasticsearch.search.aggregations.bucket.custom_composite;
 
 import org.apache.lucene.document.IntPoint;
 import org.apache.lucene.document.LongPoint;

@@ -1,5 +1,5 @@
-Elasticsearch composite aggregation with nested and filter
-==========================================================
+Elasticsearch custom composite aggregation
+==========================================
 
 This aggregations is a copy of elasticsearch composite aggregation (https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-composite-aggregation.html), but allow utilisation of multiple sources that can be nested and/or filtered.
 
@@ -16,7 +16,7 @@ For example :
 {
     "aggregations" : {
         "my_composite" : {
-            "composite_nested": {
+            "custom_composite": {
               "source": [
                 {
                     "specie": {
@@ -59,7 +59,7 @@ Plugin versions are available for (at least) all minor versions of Elasticsearch
 The first 3 digits of plugin version is Elasticsearch versioning. The last digit is used for plugin versioning under an elasticsearch version.
 
 To install it, launch this command in Elasticsearch directory replacing the url by the correct link for your Elasticsearch version (see table)
-`./bin/elasticsearch-plugin install https://github.com/opendatasoft/elasticsearch-composite-with-filter-aggregation/releases/download/v6.0.1.0/elasticsearch-composite-with-filter-aggregation-6.0.1.0.zip`
+`./bin/elasticsearch-plugin install https://github.com/opendatasoft/elasticsearch-custom-composite-aggregation/releases/download/v6.0.1.0/custom-composite-aggregation-6.0.1.0.zip`
 
 | elasticsearch version | plugin version | plugin url |
 | --------------------- | -------------- | ---------- |

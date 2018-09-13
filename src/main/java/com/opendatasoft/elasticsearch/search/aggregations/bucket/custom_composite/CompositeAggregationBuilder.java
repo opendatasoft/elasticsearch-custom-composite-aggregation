@@ -1,4 +1,4 @@
-package com.opendatasoft.elasticsearch.search.aggregations.bucket.composite_filter_nested;
+package com.opendatasoft.elasticsearch.search.aggregations.bucket.custom_composite;
 
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.io.stream.StreamInput;
@@ -19,7 +19,7 @@ import java.util.Map;
 import java.util.Objects;
 
 public class CompositeAggregationBuilder extends AbstractAggregationBuilder<CompositeAggregationBuilder> {
-    public static final String NAME = "composite_nested";
+    public static final String NAME = "custom_composite";
 
     public static final ParseField AFTER_FIELD_NAME = new ParseField("after");
     public static final ParseField SIZE_FIELD_NAME = new ParseField("size");

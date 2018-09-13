@@ -28,9 +28,9 @@ licenseFile = rootProject.file('LICENSE')
 noticeFile = rootProject.file('README.md')
 
 esplugin {
-    name 'composite-filter-nested-aggregation'
+    name 'custom-composite-aggregation'
     description 'Composite aggregation with filter and nested support'
-    classname 'com.opendatasoft.elasticsearch.plugin.CompositeWithFilterNestedAggregationPlugin'
+    classname 'com.opendatasoft.elasticsearch.plugin.CustomCompositeAggregationPlugin'
     licenseFile = rootProject.file('LICENSE')
     noticeFile = rootProject.file('README.md')
 }
