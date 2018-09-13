@@ -63,6 +63,6 @@ To install it, launch this command in Elasticsearch directory replacing the url 
 
 | elasticsearch version | plugin version | plugin url |
 | --------------------- | -------------- | ---------- |
-| 6.3.2 | 6.3.2.0 | https://github.com/opendatasoft/elasticsearch-composite-with-filter-aggregation/releases/download/v6.3.2.0/elasticsearch-composite-with-filter-aggregation-6.3.2.0.zip`
-| 6.4.0 | 6.4.0.0 | https://github.com/opendatasoft/elasticsearch-composite-with-filter-aggregation/releases/download/v6.4.0.0/elasticsearch-composite-with-filter-aggregation-6.4.0.0.zip`
+| 6.3.2 | 6.3.2.0 | https://github.com/opendatasoft/elasticsearch-custom-composite-aggregation/releases/download/v6.3.2.0/custom-composite-aggregation-6.3.2.0.zip |
+| 6.4.0 | 6.4.0.0 | https://github.com/opendatasoft/elasticsearch-custom-composite-aggregation/releases/download/v6.4.0.0/custom-composite-aggregation-6.4.0.0.zip |
 
