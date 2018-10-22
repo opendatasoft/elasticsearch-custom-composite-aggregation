@@ -27,7 +27,7 @@ import static org.apache.lucene.index.SortedSetDocValues.NO_MORE_ORDS;
  */
 class GlobalOrdinalValuesSource extends SingleDimensionValuesSource<BytesRef> {
     private final CheckedFunction<LeafReaderContext, SortedSetDocValues, IOException> docValuesFunc;
-    private final LongArray values;
+    private LongArray values;
     private SortedSetDocValues lookup;
     private long currentValue;
     private Long afterValueGlobalOrd;
@@ -38,15 +38,16 @@ class GlobalOrdinalValuesSource extends SingleDimensionValuesSource<BytesRef> {
 
     GlobalOrdinalValuesSource(BigArrays bigArrays,
                               MappedFieldType type, CheckedFunction<LeafReaderContext, SortedSetDocValues, IOException> docValuesFunc,
-                              DocValueFormat format, Object missing, int size, int reverseMul, Weight weight,
+                              DocValueFormat format, boolean missingBucket, Object missing, int size, int reverseMul, Weight weight,
                               ObjectMapper childObjectMapper, BitSetProducer parentFilter) {
-        super(format, type, missing, size, reverseMul, weight, childObjectMapper, parentFilter);
+        super(bigArrays, format, type, missingBucket, missing, size, reverseMul, weight, childObjectMapper, parentFilter);
         this.docValuesFunc = docValuesFunc;
         this.values = bigArrays.newLongArray(size, false);
     }
 
     @Override
     void copyCurrent(int slot) {
+        values = bigArrays.grow(values, slot+1);
         values.set(slot, currentValue);
     }
 
@@ -74,7 +75,10 @@ class GlobalOrdinalValuesSource extends SingleDimensionValuesSource<BytesRef> {
 
     @Override
     void setAfter(Comparable<?> value) {
-        if (value.getClass() == String.class) {
+        if (missingBucket && value == null) {
+            afterValue = null;
+            afterValueGlobalOrd = -1L;
+        } else if (value.getClass() == String.class) {
             afterValue = format.parseBytesRef(value.toString());
         } else {
             throw new IllegalArgumentException("invalid value, expected string, got " + value.getClass().getSimpleName());
@@ -84,10 +88,12 @@ class GlobalOrdinalValuesSource extends SingleDimensionValuesSource<BytesRef> {
     @Override
     BytesRef toComparable(int slot) throws IOException {
         long globalOrd = values.get(slot);
-        if (globalOrd == lastLookupOrd) {
+        if (missingBucket && globalOrd == -1) {
+            return null;
+        } else if (globalOrd == lastLookupOrd) {
             return lastLookupValue;
         } else {
-            lastLookupOrd= globalOrd;
+            lastLookupOrd = globalOrd;
             lastLookupValue = BytesRef.deepCopyOf(lookup.lookupOrd(values.get(slot)));
             return lastLookupValue;
         }
@@ -108,6 +114,9 @@ class GlobalOrdinalValuesSource extends SingleDimensionValuesSource<BytesRef> {
                         currentValue = ord;
                         next.collect(doc, bucket);
                     }
+                } else if (missingBucket) {
+                    currentValue = -1;
+                    next.collect(doc, bucket);
                 }
             }
         };

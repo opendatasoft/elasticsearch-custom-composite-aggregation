@@ -25,6 +25,7 @@ class CompositeValuesSourceConfig {
     private final DocValueFormat format;
     private final int reverseMul;
     private final Object missing;
+    private final boolean missingBucket;
     private Query filter;
     private Weight weight;
     private SearchContext context;
@@ -41,13 +42,14 @@ class CompositeValuesSourceConfig {
      * @param missing The missing value or null if documents with missing value should be ignored.
      */
     CompositeValuesSourceConfig(String name, @Nullable MappedFieldType fieldType, ValuesSource vs, DocValueFormat format,
-                                SortOrder order, @Nullable Object missing, SearchContext context, QueryBuilder filterBuilder,
-                                String nestedPath) throws IOException {
+                                SortOrder order, boolean missingBucket, @Nullable Object missing, SearchContext context,
+                                QueryBuilder filterBuilder, String nestedPath) throws IOException {
         this.name = name;
         this.fieldType = fieldType;
         this.vs = vs;
         this.format = format;
         this.reverseMul = order == SortOrder.ASC ? 1 : -1;
+        this.missingBucket = missingBucket;
         this.missing = missing;
         if (filterBuilder != null) {
             filter = filterBuilder.toFilter(context.getQueryShardContext());
@@ -104,6 +106,13 @@ class CompositeValuesSourceConfig {
      */
     Object missing() {
         return missing;
+    }
+
+    /**
+     * If true, an explicit `null bucket represents documents with missing values.
+     */
+    boolean missingBucket() {
+        return missingBucket;
     }
 
     /**

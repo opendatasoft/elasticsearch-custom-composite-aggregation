@@ -29,17 +29,21 @@ import java.util.function.ToLongFunction;
  * A {@link SingleDimensionValuesSource} for longs.
  */
 class LongValuesSource extends SingleDimensionValuesSource<Long> {
+    private final BigArrays bigArrays;
     private final CheckedFunction<LeafReaderContext, SortedNumericDocValues, IOException> docValuesFunc;
     private final LongUnaryOperator rounding;
 
-    private final LongArray values;
+    private BitArray bits;
+    private LongArray values;
     private long currentValue;
+    private boolean missingCurrentValue;
 
     LongValuesSource(BigArrays bigArrays, MappedFieldType fieldType,
                      CheckedFunction<LeafReaderContext, SortedNumericDocValues, IOException> docValuesFunc,
-                     LongUnaryOperator rounding, DocValueFormat format, Object missing, int size, int reverseMul,
+                     LongUnaryOperator rounding, DocValueFormat format, boolean missingBucket, Object missing, int size, int reverseMul,
                      Weight weight, ObjectMapper childObjectMapper, BitSetProducer parentFilter) {
-        super(format, fieldType, missing, size, reverseMul, weight, childObjectMapper, parentFilter);
+        super(bigArrays, format, fieldType, missingBucket, missing, size, reverseMul, weight, childObjectMapper, parentFilter);
+        this.bigArrays = bigArrays;
         this.docValuesFunc = docValuesFunc;
         this.rounding = rounding;
         this.values = bigArrays.newLongArray(size, false);
@@ -47,21 +51,51 @@ class LongValuesSource extends SingleDimensionValuesSource<Long> {
 
     @Override
     void copyCurrent(int slot) {
-        values.set(slot, currentValue);
+        values = bigArrays.grow(values, slot+1);
+        if (missingBucket && missingCurrentValue) {
+            bits.clear(slot);
+        } else {
+            assert missingCurrentValue == false;
+            if (missingBucket) {
+                bits.set(slot);
+            }
+            values.set(slot, currentValue);
+        }
     }
 
     @Override
     int compare(int from, int to) {
+        if (missingBucket) {
+            if (bits.get(from) == false) {
+                return bits.get(to) ? -1 * reverseMul : 0;
+            } else if (bits.get(to) == false) {
+                return reverseMul;
+            }
+        }
         return compareValues(values.get(from), values.get(to));
     }
 
     @Override
     int compareCurrent(int slot) {
+        if (missingBucket) {
+            if (missingCurrentValue) {
+                return bits.get(slot) ? -1 * reverseMul : 0;
+            } else if (bits.get(slot) == false) {
+                return reverseMul;
+            }
+        }
         return compareValues(currentValue, values.get(slot));
     }
 
     @Override
     int compareCurrentWithAfter() {
+        if (missingBucket) {
+            if (missingCurrentValue) {
+                return afterValue != null ? -1 * reverseMul : 0;
+            } else if (afterValue == null) {
+                return reverseMul;
+            }
+        }
         return compareValues(currentValue, afterValue);
     }
 
@@ -71,7 +105,9 @@ class LongValuesSource extends SingleDimensionValuesSource<Long> {
 
     @Override
     void setAfter(Comparable<?> value) {
-        if (value instanceof Number) {
+        if (missingBucket && value == null) {
+            afterValue = null;
+        } else if (value instanceof Number) {
             afterValue = ((Number) value).longValue();
         } else {
             // for date histogram source with "format", the after value is formatted
@@ -84,6 +120,9 @@ class LongValuesSource extends SingleDimensionValuesSource<Long> {
 
     @Override
     Long toComparable(int slot) {
+        if (missingBucket && bits.get(slot) == false) {
+            return null;
+        }
         return values.get(slot);
     }
 
@@ -99,6 +138,9 @@ class LongValuesSource extends SingleDimensionValuesSource<Long> {
                         currentValue = dvs.nextValue();
                         next.collect(doc, bucket);
                     }
+                } else if (missingBucket) {
+                    missingCurrentValue = true;
+                    next.collect(doc, bucket);
                 }
             }
         };
@@ -167,6 +209,6 @@ class LongValuesSource extends SingleDimensionValuesSource<Long> {
 
     @Override
     public void close() {
-        Releasables.close(values);
+        Releasables.close(values, bits);
     }
 }

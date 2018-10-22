@@ -13,6 +13,8 @@ import org.apache.lucene.util.Bits;
 import org.elasticsearch.common.lease.Releasable;
 import org.elasticsearch.common.lease.Releasables;
 import org.elasticsearch.common.lucene.Lucene;
+import org.elasticsearch.common.util.BigArrays;
+import org.elasticsearch.common.util.IntArray;
 import org.elasticsearch.search.aggregations.LeafBucketCollector;
 
 import java.io.IOException;
@@ -27,11 +29,12 @@ final class CompositeValuesCollectorQueue implements Releasable {
     // the slot for the current candidate
     private static final int CANDIDATE_SLOT = Integer.MAX_VALUE;
 
+    private final BigArrays bigArrays;
     private final int maxSize;
     private final TreeMap<Integer, Integer> keys;
     private final SingleDimensionValuesSource<?>[] arrays;
-    private final int[] docCounts;
-    private boolean afterValueSet = false;
+    private IntArray docCounts;
+    private boolean afterKeyIsSet = false;
 
     /**
      * Constructs a composite queue with the specified size and sources.
@@ -39,17 +42,19 @@ final class CompositeValuesCollectorQueue implements Releasable {
      * @param sources The list of {@link CompositeValuesSourceConfig} to build the composite buckets.
      * @param size The number of composite buckets to keep.
      */
-    CompositeValuesCollectorQueue(SingleDimensionValuesSource<?>[] sources, int size) {
+    CompositeValuesCollectorQueue(BigArrays bigArrays, SingleDimensionValuesSource<?>[] sources, int size, CompositeKey afterKey) {
+        this.bigArrays = bigArrays;
         this.maxSize = size;
         this.arrays = sources;
-        this.docCounts = new int[size];
         this.keys = new TreeMap<>(this::compare);
-    }
-
-    void clear() {
-        keys.clear();
-        Arrays.fill(docCounts, 0);
-        afterValueSet = false;
+        if (afterKey != null) {
+            assert afterKey.size() == sources.length;
+            afterKeyIsSet = true;
+            for (int i = 0; i < afterKey.size(); i++) {
+                sources[i].setAfter(afterKey.get(i));
+            }
+        }
+        this.docCounts = bigArrays.newIntArray(1, false);
     }
 
     /**
@@ -85,7 +90,7 @@ final class CompositeValuesCollectorQueue implements Releasable {
      * Returns the lowest value (exclusive) of the leading source.
      */
     Comparable<?> getLowerValueLeadSource() {
-        return afterValueSet ? arrays[0].getAfter() : null;
+        return afterKeyIsSet ? arrays[0].getAfter() : null;
     }
 
     /**
@@ -98,7 +103,7 @@ final class CompositeValuesCollectorQueue implements Releasable {
      * Returns the document count in <code>slot</code>.
      */
     int getDocCount(int slot) {
-        return docCounts[slot];
+        return docCounts.get(slot);
     }
 
     /**
@@ -108,7 +113,8 @@ final class CompositeValuesCollectorQueue implements Releasable {
         for (int i = 0; i < arrays.length; i++) {
             arrays[i].copyCurrent(slot);
         }
-        docCounts[slot] = 1;
+        docCounts = bigArrays.grow(docCounts, slot+1);
+        docCounts.set(slot, 1);
     }
 
     /**
@@ -116,24 +122,12 @@ final class CompositeValuesCollectorQueue implements Releasable {
      */
     int compare(int slot1, int slot2) {
         for (int i = 0; i < arrays.length; i++) {
-            int cmp = (slot1 == CANDIDATE_SLOT) ? arrays[i].compareCurrent(slot2) :
-                arrays[i].compare(slot1, slot2);
+            int cmp = (slot1 == CANDIDATE_SLOT) ? arrays[i].compareCurrent(slot2) : arrays[i].compare(slot1, slot2);
             if (cmp != 0) {
                 return cmp;
             }
         }
         return 0;
-    }
-
-    /**
-     * Sets the after values for this comparator.
-     */
-    void setAfter(Comparable<?>[] values) {
-        assert values.length == arrays.length;
-        afterValueSet = true;
-        for (int i = 0; i < arrays.length; i++) {
-            arrays[i].setAfter(values[i]);
-        }
     }
 
     /**
@@ -157,6 +151,9 @@ final class CompositeValuesCollectorQueue implements Releasable {
         Comparable<?>[] values = new Comparable<?>[arrays.length];
         for (int i = 0; i < values.length; i++) {
             values[i] = arrays[i].toComparable(slot);
+            if (values[i] == null) {
+                return null;
+            }
         }
         return new CompositeKey(values);
     }
@@ -272,10 +269,10 @@ final class CompositeValuesCollectorQueue implements Releasable {
 
         if (topSlot != null) {
             // this key is already in the top N, skip it
-            docCounts[topSlot] += 1;
+            docCounts.increment(topSlot, 1);
             return topSlot;
         }
-        if (afterValueSet && compareCurrentWithAfter() <= 0) {
+        if (afterKeyIsSet && compareCurrentWithAfter() <= 0) {
             // this key is greater than the top value collected in the previous round, skip it
             return -1;
         }
@@ -307,6 +304,6 @@ final class CompositeValuesCollectorQueue implements Releasable {
 
     @Override
     public void close() {
-        Releasables.close(arrays);
+        Releasables.close(docCounts);
     }
 }

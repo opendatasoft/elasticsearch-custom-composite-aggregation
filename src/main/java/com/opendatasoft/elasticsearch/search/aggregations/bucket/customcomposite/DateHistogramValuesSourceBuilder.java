@@ -208,7 +208,7 @@ public class DateHistogramValuesSourceBuilder extends CompositeValuesSourceBuild
             final DocValueFormat docValueFormat = format() == null ? DocValueFormat.RAW : config.format();
             final MappedFieldType fieldType = config.fieldContext() != null ? config.fieldContext().fieldType() : null;
             return new CompositeValuesSourceConfig(
-                    name, fieldType, vs, docValueFormat, order(), missing(), context, filter(), nestedPath());
+                    name, fieldType, vs, docValueFormat, order(), missingBucket(), missing(), context, filter(), nestedPath());
         } else {
             throw new IllegalArgumentException("invalid source, expected numeric, got " + orig.getClass().getSimpleName());
         }

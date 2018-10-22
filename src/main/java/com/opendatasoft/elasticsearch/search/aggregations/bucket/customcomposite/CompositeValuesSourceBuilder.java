@@ -26,6 +26,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
     private String field = null;
     private Script script = null;
     private ValueType valueType = null;
+    private boolean missingBucket = false;
     private Object missing = null;
     private SortOrder order = SortOrder.ASC;
     private String format = null;
@@ -49,6 +50,11 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
         }
         if (in.readBoolean()) {
             this.valueType = ValueType.readFromStream(in);
+        }
+        if (in.getVersion().onOrAfter(Version.V_6_4_0)) {
+            this.missingBucket = in.readBoolean();
+        } else {
+            this.missingBucket = false;
         }
         this.missing = in.readGenericValue();
         this.order = SortOrder.readFromStream(in);
@@ -77,6 +83,9 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
         if (hasValueType) {
             valueType.writeTo(out);
         }
+        if (out.getVersion().onOrAfter(Version.V_6_4_0)) {
+            out.writeBoolean(missingBucket);
+        }
         out.writeGenericValue(missing);
         order.writeTo(out);
         if (out.getVersion().onOrAfter(Version.V_6_3_0)) {
@@ -104,6 +113,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
         if (script != null) {
             builder.field("script", script);
         }
+        builder.field("missing_bucket", missingBucket);
         if (missing != null) {
             builder.field("missing", missing);
         }
@@ -127,7 +137,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
 
     @Override
     public final int hashCode() {
-        return Objects.hash(field, missing, script, valueType, order, format, filter, nestedPath, innerHashCode());
+        return Objects.hash(field, missingBucket, missing, script, valueType, order, format, filter, nestedPath, innerHashCode());
     }
 
     protected abstract int innerHashCode();
@@ -142,6 +152,7 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
         return Objects.equals(field, that.field()) &&
             Objects.equals(script, that.script()) &&
             Objects.equals(valueType, that.valueType()) &&
+            Objects.equals(missingBucket, that.missingBucket()) &&
             Objects.equals(missing, that.missing()) &&
             Objects.equals(order, that.order()) &&
             Objects.equals(format, that.format()) &&
@@ -271,6 +282,23 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
     }
 
     /**
+     * If true an explicit `null bucket will represent documents with missing values.
+     */
+    @SuppressWarnings("unchecked")
+    public AB missingBucket(boolean missingBucket) {
+        this.missingBucket = missingBucket;
+        return (AB) this;
+    }
+
+    /**
+     * False if documents with missing values are ignored, otherwise missing values are
+     * represented by an explicit `null` value.
+     */
+    public boolean missingBucket() {
+        return missingBucket;
+    }
+
+    /**
      * Sets the {@link SortOrder} to use to sort values produced this source
      */
     @SuppressWarnings("unchecked")
@@ -333,11 +361,15 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
         ValuesSourceConfig<?> config = ValuesSourceConfig.resolve(context.getQueryShardContext(),
             valueType, field, script, missing, null, format);
 
-        if (config.unmapped() && field != null && config.missing() == null) {
+        if (config.unmapped() && field != null && missing == null && missingBucket == false) {
             // this source cannot produce any values so we refuse to build
             // since composite buckets are not created on null values
             throw new QueryShardException(context.getQueryShardContext(),
                 "failed to find field [" + field + "] and [missing] is not provided");
+        }
+        if (missingBucket && missing != null) {
+            throw new QueryShardException(context.getQueryShardContext(),
+                    "cannot use [missing] option in conjunction with [missing_bucket]");
         }
         return innerBuild(context, config);
     }
