@@ -64,10 +64,10 @@ Plugin versions are available for (at least) all minor versions of Elasticsearch
 The first 3 digits of plugin version is Elasticsearch versioning. The last digit is used for plugin versioning under an elasticsearch version.
 
 To install it, launch this command in Elasticsearch directory replacing the url by the correct link for your Elasticsearch version (see table)
-`./bin/elasticsearch-plugin install https://github.com/opendatasoft/elasticsearch-custom-composite-aggregation/releases/download/v6.4.2.0/custom-composite-aggregation-6.4.2.0.zip`
+`./bin/elasticsearch-plugin install https://github.com/opendatasoft/elasticsearch-custom-composite-aggregation/releases/download/v6.4.2.1/custom-composite-aggregation-6.4.2.1.zip`
 
 | elasticsearch version | plugin version | plugin url |
 | --------------------- | -------------- | ---------- |
 | 6.3.2 | 6.3.2.0 | https://github.com/opendatasoft/elasticsearch-custom-composite-aggregation/releases/download/v6.3.2.0/custom-composite-aggregation-6.3.2.0.zip |
-| 6.4.2 | 6.4.2.0 | https://github.com/opendatasoft/elasticsearch-custom-composite-aggregation/releases/download/v6.4.2.0/custom-composite-aggregation-6.4.2.0.zip |
+| 6.4.2 | 6.4.2.1 | https://github.com/opendatasoft/elasticsearch-custom-composite-aggregation/releases/download/v6.4.2.1/custom-composite-aggregation-6.4.2.1.zip |
 
