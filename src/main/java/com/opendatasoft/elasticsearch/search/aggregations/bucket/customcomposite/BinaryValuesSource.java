@@ -32,7 +32,8 @@ class BinaryValuesSource extends SingleDimensionValuesSource<BytesRef> {
     private ObjectArray<BytesRefBuilder> valueBuilders;
     private BytesRef currentValue;
 
-    BinaryValuesSource(BigArrays bigArrays, LongConsumer breakerConsumer, MappedFieldType fieldType, CheckedFunction<LeafReaderContext, SortedBinaryDocValues, IOException> docValuesFunc,
+    BinaryValuesSource(BigArrays bigArrays, LongConsumer breakerConsumer, MappedFieldType fieldType,
+                       CheckedFunction<LeafReaderContext, SortedBinaryDocValues, IOException> docValuesFunc,
                        DocValueFormat format, boolean missingBucket, Object missing, int size, int reverseMul, Weight weight,
                        ObjectMapper childObjectMapper, BitSetProducer parentFilter) {
         super(bigArrays, format, fieldType, missingBucket, missing, size, reverseMul, weight, childObjectMapper, parentFilter);

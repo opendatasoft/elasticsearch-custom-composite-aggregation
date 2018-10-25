@@ -181,8 +181,9 @@ final class CompositeValuesCollectorQueue implements Releasable {
         return constructNextCollector(arrays[last], context, collector, forceLeadSourceValue);
     }
 
-    public LeafBucketCollector constructNextCollector(SingleDimensionValuesSource<?> singleDimensionValuesSource, LeafReaderContext context,
-                                                      LeafBucketCollector collector, Comparable<?> forceLeadSourceValue) throws IOException {
+    public LeafBucketCollector constructNextCollector(
+            SingleDimensionValuesSource<?> singleDimensionValuesSource, LeafReaderContext context,
+            LeafBucketCollector collector, Comparable<?> forceLeadSourceValue) throws IOException {
 
 
         LeafBucketCollector currentCollector = collector;
