@@ -18,7 +18,6 @@ import org.elasticsearch.common.util.IntArray;
 import org.elasticsearch.search.aggregations.LeafBucketCollector;
 
 import java.io.IOException;
-import java.util.Arrays;
 import java.util.Set;
 import java.util.TreeMap;
 
@@ -174,89 +173,101 @@ final class CompositeValuesCollectorQueue implements Releasable {
     LeafBucketCollector getLeafCollector(Comparable<?> forceLeadSourceValue,
                                          LeafReaderContext context, LeafBucketCollector in) throws IOException {
 
-        InternalCollector internalCollectors[] = new InternalCollector[arrays.length];
-
-        LeafBucketCollector empty = new LeafBucketCollector() {
-            @Override
-            public void collect(int doc, long bucket) throws IOException {
-
-            }
-        };
-
-        for(int i = arrays.length - 1; i >= 0; i--) {
-            if (i == 0) {
-                internalCollectors[i] = new InternalCollector(arrays[i], context, empty, forceLeadSourceValue);
-            } else {
-                internalCollectors[i] = new InternalCollector(arrays[i], context, empty, null);
-            }
+        int last = arrays.length - 1;
+        LeafBucketCollector collector = in;
+        while (last > 0) {
+            collector = constructNextCollector(arrays[last--], context, collector, null);
         }
-
-        return new LeafBucketCollector() {
-            @Override
-            public void collect(int doc, long bucket) throws IOException {
-
-                for (int i=0; i < internalCollectors.length; i++) {
-                    if (internalCollectors[i].nested) {
-                        if (doc == 0 || internalCollectors[i].parentDocs == null || internalCollectors[i].childDocs == null) {
-                            return;
-                        }
-
-                        final int prevParentDoc = internalCollectors[i].parentDocs.prevSetBit(doc - 1);
-                        int childDocId = internalCollectors[i].childDocs.docID();
-                        if (childDocId <= prevParentDoc) {
-                            childDocId = internalCollectors[i].childDocs.advance(prevParentDoc + 1);
-                        }
-
-                        for (; childDocId < doc; childDocId = internalCollectors[i].childDocs.nextDoc()) {
-                            if (internalCollectors[i].filter == null || internalCollectors[i].filter.get(childDocId)) {
-                                internalCollectors[i].next.collect(childDocId, bucket);
-                            }
-                        }
-                    }
-                    else {
-                        if (internalCollectors[i].filter == null || internalCollectors[i].filter.get(doc)) {
-                            internalCollectors[i].next.collect(doc, bucket);
-                        }
-                    }
-                }
-                in.collect(doc, bucket);
-
-            }
-        };
+        return constructNextCollector(arrays[last], context, collector, forceLeadSourceValue);
     }
 
-    public static class InternalCollector {
-        BitSet parentDocs;
-        DocIdSetIterator childDocs;
-        boolean nested = false;
-        LeafBucketCollector next;
-        Bits filter = null;
+    public LeafBucketCollector constructNextCollector(SingleDimensionValuesSource<?> singleDimensionValuesSource, LeafReaderContext context,
+                                                      LeafBucketCollector collector, Comparable<?> forceLeadSourceValue) throws IOException {
 
-        InternalCollector(
-                SingleDimensionValuesSource<?> singleDimensionValuesSource, LeafReaderContext context,
-                LeafBucketCollector next, Comparable<?> forceLeadSourceValue) throws IOException {
+
+        LeafBucketCollector currentCollector = collector;
+
+        if (singleDimensionValuesSource.childObjectMapper != null) {
+
+            final BitSet parentDocs = singleDimensionValuesSource.parentFilter.getBitSet(context);
+
+            LeafBucketCollector nestedCurrentCollector = currentCollector;
+            currentCollector = new LeafBucketCollector() {
+                @Override
+                public void collect(int childDoc, long bucket) throws IOException {
+                    // fast forward to retrieve the parentDoc this childDoc belongs to
+                    final int parentDoc = parentDocs.nextSetBit(childDoc);
+                    assert childDoc <= parentDoc && parentDoc != DocIdSetIterator.NO_MORE_DOCS;
+
+                    nestedCurrentCollector.collect(parentDoc, bucket);
+                }
+            };
+
+            Query childFilter = singleDimensionValuesSource.childObjectMapper.nestedTypeFilter();
+            IndexReaderContext topLevelContext = ReaderUtil.getTopLevelContext(context);
+            IndexSearcher searcher = new IndexSearcher(topLevelContext);
+            searcher.setQueryCache(null);
+            Weight weight = searcher.createNormalizedWeight(childFilter, false);
+            Scorer childDocsScorer = weight.scorer(context);
+
+            final DocIdSetIterator childDocs = childDocsScorer != null ? childDocsScorer.iterator() : null;
 
             if (forceLeadSourceValue != null) {
-                this.next = singleDimensionValuesSource.getLeafCollector(forceLeadSourceValue, context, next);
+                currentCollector = singleDimensionValuesSource.getLeafCollector(forceLeadSourceValue, context, currentCollector);
             } else {
-                this.next = singleDimensionValuesSource.getLeafCollector(context, next);
+                currentCollector = singleDimensionValuesSource.getLeafCollector(context, currentCollector);
             }
-            if (singleDimensionValuesSource.childObjectMapper != null) {
-                nested = true;
-                Query childFilter = singleDimensionValuesSource.childObjectMapper.nestedTypeFilter();
-                IndexReaderContext topLevelContext = ReaderUtil.getTopLevelContext(context);
-                IndexSearcher searcher = new IndexSearcher(topLevelContext);
-                searcher.setQueryCache(null);
-                Weight weight = searcher.createNormalizedWeight(childFilter, false);
-                Scorer childDocsScorer = weight.scorer(context);
-                parentDocs = singleDimensionValuesSource.parentFilter.getBitSet(context);
-                childDocs = childDocsScorer != null ? childDocsScorer.iterator() : null;
-            }
+
             if (singleDimensionValuesSource.weight != null) {
-                filter = Lucene.asSequentialAccessBits(
+                Bits filter = Lucene.asSequentialAccessBits(
                         context.reader().maxDoc(), singleDimensionValuesSource.weight.scorerSupplier(context));
+
+                LeafBucketCollector filteredCollector = currentCollector;
+
+                currentCollector = new LeafBucketCollector() {
+                    @Override
+                    public void collect(int doc, long bucket) throws IOException {
+                        if (filter.get(doc)) {
+                            filteredCollector.collect(doc, bucket);
+                        }
+                    }
+                };
+            }
+
+            LeafBucketCollector nestedCollector = currentCollector;
+
+            currentCollector =  new LeafBucketCollector() {
+
+                @Override
+                public void collect(int parentDoc, long bucket) throws IOException {
+                    // if parentDoc is 0 then this means that this parent doesn't have child docs (b/c these appear always before the parent
+                    // doc), so we can skip:
+                    if (parentDoc == 0 || parentDocs == null || childDocs == null) {
+                        return;
+                    }
+
+                    final int prevParentDoc = parentDocs.prevSetBit(parentDoc - 1);
+                    int childDocId = childDocs.docID();
+                    if (childDocId <= prevParentDoc) {
+                        childDocId = childDocs.advance(prevParentDoc + 1);
+                    }
+
+                    for (; childDocId < parentDoc; childDocId = childDocs.nextDoc()) {
+                        nestedCollector.collect(childDocId, bucket);
+                    }
+                }
+            };
+        }
+
+        if (collector == currentCollector) {
+
+            if (forceLeadSourceValue != null) {
+                return singleDimensionValuesSource.getLeafCollector(forceLeadSourceValue, context, collector);
+            } else {
+                return singleDimensionValuesSource.getLeafCollector(context, collector);
             }
         }
+        return currentCollector;
     }
 
     /**

@@ -242,7 +242,7 @@ final class CompositeAggregator extends BucketsAggregator {
     }
 
     private SingleDimensionValuesSource<?> createValuesSource(BigArrays bigArrays, IndexReader reader, Query query,
-                                                                        CompositeValuesSourceConfig config, int size, int sortRank) {
+                                                                        CompositeValuesSourceConfig config, int sortRank, int size) {
         Weight weight = config.weight();
         ObjectMapper childObjectMapper = config.childObjectMapper();
         BitSetProducer parentFilter = config.parentFilter();

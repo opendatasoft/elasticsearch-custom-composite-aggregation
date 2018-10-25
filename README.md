@@ -4,9 +4,10 @@ Elasticsearch custom composite aggregation
 This aggregations is a copy of elasticsearch composite aggregation (https://www.elastic.co/guide/en/elasticsearch/reference/current/search-aggregations-bucket-composite-aggregation.html), but allow utilisation of multiple sources that can be nested and/or filtered.
 
 
-In addition to the original composite aggregation, each source can allow two new parameters :
+In addition to the original composite aggregation, each source can take a new object parameter `nested`:
+This object accepts two parameters:
 
- - `nested_path`: define a nested path to retrieve nested document for this source.
+ - `path`: define a nested path to retrieve nested document for this source.
  - `filter`: define a filter for a source. This parameter can take any elasticsearch filter 
  
 
@@ -19,10 +20,11 @@ For example :
             "custom_composite": {
               "source": [
                 {
-                    "specie": {
-                      "terms": {
-                        "field": "fields.str_val.raw",
-                        "nested_path": "fields",
+                  "specie": {
+                    "terms": {
+                      "field": "fields.str_val.raw",
+                      "nested": {
+                        "path": "fields",
                         "filter": {
                           "term": {
                             "fields.key": "specie"
@@ -30,12 +32,14 @@ For example :
                         }
                       }
                     }
-                  },
-                  {
-                    "city": {
-                      "terms": {
-                        "field": "fields.long_val",
-                        "nested_path": "fields",
+                  }
+                },
+                {
+                  "specie": {
+                    "terms": {
+                      "field": "fields.long_val",
+                      "nested": {
+                        "path": "fields",
                         "filter": {
                           "term": {
                             "fields.key": "city"
@@ -44,6 +48,7 @@ For example :
                       }
                     }
                   }
+                }
               ]
             }
         }

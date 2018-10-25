@@ -2,11 +2,14 @@ package com.opendatasoft.elasticsearch.search.aggregations.bucket.customcomposit
 
 import org.elasticsearch.common.ParseField;
 import org.elasticsearch.common.ParsingException;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.xcontent.AbstractObjectParser;
 import org.elasticsearch.common.xcontent.ObjectParser;
 import org.elasticsearch.common.xcontent.XContentParser;
+import org.elasticsearch.common.xcontent.XContentParserUtils;
+import org.elasticsearch.index.query.QueryBuilder;
 import org.elasticsearch.script.Script;
 import org.elasticsearch.search.aggregations.support.ValueType;
 
@@ -41,10 +44,37 @@ class CompositeValuesSourceParserHelper {
         objectParser.declareField(VB::order,  XContentParser::text, new ParseField("order"), ObjectParser.ValueType.STRING);
 
         objectParser.declareField(
-                VB::filter, (parser, context) -> parseInnerQueryBuilder(parser), new ParseField("filter"),
-                ObjectParser.ValueType.OBJECT);
+                VB::nested, (parser, context) -> CompositeValuesSourceParserHelper.parseNested(parser),
+                new ParseField("nested"), ObjectParser.ValueType.OBJECT);
+    }
 
-        objectParser.declareField(VB::nestedPath,  XContentParser::text, new ParseField("nested_path"), ObjectParser.ValueType.STRING);
+    private static Tuple<String, QueryBuilder> parseNested(XContentParser parser) throws IOException {
+        QueryBuilder filter = null;
+        String path = null;
+        String currentFieldName = null;
+        ParseField pathField = new ParseField("path");
+        ParseField filterField = new ParseField("filter");
+        XContentParser.Token token;
+        while ((token = parser.nextToken()) != XContentParser.Token.END_OBJECT) {
+            if (token == XContentParser.Token.FIELD_NAME) {
+                currentFieldName = parser.currentName();
+            } else if (token == XContentParser.Token.VALUE_STRING) {
+                if (pathField.match(currentFieldName, parser.getDeprecationHandler())) {
+                    path = parser.text();
+                } else {
+                    XContentParserUtils.throwUnknownField(currentFieldName, parser.getTokenLocation());
+                }
+            } else if (token == XContentParser.Token.START_OBJECT) {
+                if (filterField.match(currentFieldName, parser.getDeprecationHandler())) {
+                    filter = parseInnerQueryBuilder(parser);
+                } else {
+                    XContentParserUtils.throwUnknownField(currentFieldName, parser.getTokenLocation());
+                }
+            } else {
+                XContentParserUtils.throwUnknownToken(token, parser.getTokenLocation());
+            }
+        }
+        return new Tuple<>(path, filter);
     }
 
     static void writeTo(CompositeValuesSourceBuilder<?> builder, StreamOutput out) throws IOException {

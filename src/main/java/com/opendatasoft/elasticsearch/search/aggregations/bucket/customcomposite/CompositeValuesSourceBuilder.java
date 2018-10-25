@@ -1,6 +1,7 @@
 package com.opendatasoft.elasticsearch.search.aggregations.bucket.customcomposite;
 
 import org.elasticsearch.Version;
+import org.elasticsearch.common.collect.Tuple;
 import org.elasticsearch.common.io.stream.StreamInput;
 import org.elasticsearch.common.io.stream.StreamOutput;
 import org.elasticsearch.common.io.stream.Writeable;
@@ -156,8 +157,8 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
             Objects.equals(missing, that.missing()) &&
             Objects.equals(order, that.order()) &&
             Objects.equals(format, that.format()) &&
-            Objects.equals(filter, that.filter()) &&
-            Objects.equals(nestedPath, that.nestedPath()) &&
+            Objects.equals(filter, that.nested().v2()) &&
+            Objects.equals(nestedPath, that.nested().v1()) &&
             innerEquals(that);
     }
 
@@ -192,38 +193,21 @@ public abstract class CompositeValuesSourceBuilder<AB extends CompositeValuesSou
      * Sets the filter to use for this source
      */
     @SuppressWarnings("unchecked")
-    public AB filter(QueryBuilder filter) {
-        if (filter == null) {
-            throw new IllegalArgumentException("[filter] must not be null");
-        }
-        this.filter = filter;
-        return (AB) this;
-    }
-
-    /**
-     * Gets the field to use for this source
-     */
-    public QueryBuilder filter() {
-        return filter;
-    }
-
-    /**
-     * Sets the filter to use for this source
-     */
-    @SuppressWarnings("unchecked")
-    public AB nestedPath(String nestedPath) {
-        if (nestedPath == null) {
+    public AB nested(Tuple<String, QueryBuilder> nested) {
+        if (nested.v1() == null) {
             throw new IllegalArgumentException("[nested_path] must not be null");
         }
-        this.nestedPath = nestedPath;
+        this.nestedPath = nested.v1();
+
+        this.filter = nested.v2();
         return (AB) this;
     }
 
     /**
      * Gets the field to use for this source
      */
-    public String nestedPath() {
-        return nestedPath;
+    public Tuple<String, QueryBuilder> nested() {
+        return new Tuple<>(nestedPath, filter);
     }
 
     /**
