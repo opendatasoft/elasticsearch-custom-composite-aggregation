@@ -35,7 +35,7 @@ For example :
                   }
                 },
                 {
-                  "specie": {
+                  "city": {
                     "terms": {
                       "field": "fields.long_val",
                       "nested": {
